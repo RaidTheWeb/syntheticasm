@@ -1,0 +1,10 @@
+# fuck vscode
+.vscode/**
+
+# binary outputs
+bin/
+build/
+
+# out files
+*.out
+*.snt

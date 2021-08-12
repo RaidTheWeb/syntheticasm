@@ -1,0 +1,7 @@
+main:
+    setr r0 0x20
+    setr r1 0x21
+
+    lt r0 r1
+    printi r0
+    halt

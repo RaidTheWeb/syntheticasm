@@ -1,0 +1,22 @@
+
+setr r0 0x2131
+setr r2 0x1523
+setr r3 0x02 ; string length
+
+; push string to stack backwards (little endian)
+push 0x69 ; i
+push 0x48 ; H
+
+pop r1
+xor r0 r1
+mul r0 r2
+printcs "hashed: "
+printi r0
+setr r1 0x0A
+printc r1
+
+dec r3 ; clever way to limit stack pops
+
+jnzb r3 0x0020
+
+halt

@@ -1,0 +1,28 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  ROT13 Encryptor in Synthetic Assembly  ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+main:
+    ; push word as little endian
+    push 0x6f ; o
+    push 0x6c ; l
+    push 0x6c ; l
+    push 0x65 ; e
+    push 0x48 ; H
+
+    setr r0 0x08 ; string length
+
+encode:
+    setr r2 0x0D ; key (13)
+
+    pop r1 ; pop value into r1
+    add r2 r1 ; add the two together
+    printc r2 ; print ciphered thing
+
+    dec r0 ; decrement loop index
+
+    ; jnzb r0 0x0011 (old)
+    jnz r0 encode
+    setr r2 0x0A
+    printc r2
+    halt
