@@ -11,7 +11,7 @@ static bool file_exists(char *filename) {
 
 int main(int argc, char** argv) {
     if(argc < 2) {
-        fprintf(stderr, "usage: %s [input]\n", argv[0]);
+        fprintf(stderr, "usage: %s [input] [out?]\n", argv[0]);
         return 1;
     }
 
@@ -20,9 +20,12 @@ int main(int argc, char** argv) {
         return 1;
     }
 
+
     FILE* file = fopen(argv[1], "r");
 
-
-    assemble(file);
+    if(argc == 3)
+        assemble(file, argv[2]);
+    else
+        assemble(file, "a.out");
     return 0;
 }

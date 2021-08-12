@@ -16,4 +16,4 @@ typedef struct {
 
 #define GROW_CAPACITY(capacity) (++capacity)
 
-void assemble(FILE* file);
+void assemble(FILE* file, char* outf);

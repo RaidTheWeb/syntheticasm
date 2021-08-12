@@ -175,7 +175,7 @@ static bool isAplhaStr(char* line) {
     return true;
 }
 
-void assemble(FILE* file) {
+void assemble(FILE* file, char* outf) {
     assembler.bytesWritten = 0x00;
     assembler.count = 0;
     assembler.capacity = 8;
@@ -467,6 +467,6 @@ void assemble(FILE* file) {
     if(line)
         free(line);
 
-    FILE* out = fopen("a.out", "wb");
+    FILE* out = fopen(outf, "wb");
     writeBuffer(out);
 }
