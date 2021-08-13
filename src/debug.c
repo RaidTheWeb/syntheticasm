@@ -21,10 +21,21 @@ static int simpleInstruction(const char* name, int offset) {
 static char* getRegister(uint8_t reg) {
     if(!VALID_REGISTER(reg)) return "(nil)";
     switch(reg) {
-        case r0: return "r0";
-        case r1: return "r1";
-        case r2: return "r2";
-        case r3: return "r3";
+        case r0:    return "r0";
+        case r1:    return "r1";
+        case r2:    return "r2";
+        case r3:    return "r3";
+        case r4:    return "r4";
+        case r5:    return "r5";
+        case r6:    return "r6";
+        case r7:    return "r7";
+        case r8:    return "r8";
+        case r9:    return "r9";
+        case r10:   return "r10";
+        case ax:    return "ax";
+        case bx:    return "bx";
+        case cx:    return "cx";
+        case dx:    return "dx";
     }
 }
 
@@ -96,6 +107,12 @@ int disassembleInstruction(uint8_t* source, int offset) {
         case OP_POP: return simpleRegisterInstruction("pop", offset, source[offset + 1]);
         case OP_PUSHR: return simpleRegisterInstruction("pushr", offset, source[offset + 1]);
         case OP_GETIP: return simpleRegisterInstruction("getip", offset, source[offset + 1]);
+        case OP_PEEK: return simpleRegisterInstruction("peek", offset, source[offset + 1]);
+        case OP_MOD: return movInstruction("mod", offset, source[offset + 1], source[offset + 2]);
+        case OP_LT: return movInstruction("lt", offset, source[offset + 1], source[offset + 2]);
+        case OP_GT: return movInstruction("gt", offset, source[offset + 1], source[offset + 2]);
+        case OP_RET: return simpleInstruction("ret", offset);
+        case OP_CALL: return simpleJumpInstruction("call", offset, source[offset + 1], source[offset + 2]);
         default:
             printf("unknown operation %02x", instruction);
             return offset + 1;

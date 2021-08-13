@@ -30,6 +30,8 @@ typedef enum {
     OP_MOD          = 0x1B,                     // mod      -       modulate register values together and store in dest
     OP_LT           = 0x1C,                     // lt       -       conditional less than and store result in dest
     OP_GT           = 0x1D,                     // gt       -       conditional greater than and store result in dest
+    OP_RET          = 0x1E,                     // ret      -       return from procedure (restore ip from stack)
+    OP_CALL         = 0x1F,                     // call     -       call a procedure (place ip on stack)
 } Opcode;
 
 typedef enum {
@@ -62,6 +64,8 @@ typedef enum {
     H_MOD               = 0xdf9e7283,       // mod
     H_LT                = 0x5d31eaed,       // lt
     H_GT                = 0x4b208576,       // gt
+    H_RET               = 0x30f467ac,       // ret
+    H_CALL              = 0xb3f184a9,       // call
 } HashedOpcode;
 
 typedef enum {
@@ -69,4 +73,15 @@ typedef enum {
     HR_R1               = 0x0c53fdac,               // r1
     HR_R2               = 0x0f540265,               // r2
     HR_R3               = 0x0e5400d2,               // r3
+    HR_R4               = 0x0953f8f3,               // r4
+    HR_R5               = 0x0853f760,               // r5
+    HR_R6               = 0x0b53fc19,               // r6
+    HR_R7               = 0x0a53fa86,               // r7
+    HR_R8               = 0x15540bd7,               // r8
+    HR_R9               = 0x14540a44,               // r9
+    HR_R10              = 0x04383c94,               // r10
+    HR_AX               = 0x53250f3c,               // ax
+    HR_BX               = 0x552bce27,               // bx
+    HR_CX               = 0x4f29861e,               // cx
+    HR_DX               = 0x511cbd51,               // dx
 } HashedRegister;

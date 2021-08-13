@@ -1,0 +1,16 @@
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Include File Test   ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+noway: ; no way label
+    printcs "no way!"
+    setr r0 0x0A
+    printc r0
+    ret ; restore IP from stack (go to instruction after call)
+
+main:
+    call noway ; push IP to stack and point IP to noway label
+    printcs "ended call stack"
+    setr r0 0x0A
+    printc r0
+    halt ; halt VM (end program)

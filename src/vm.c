@@ -6,7 +6,6 @@
 VM vm;
 
 static uint8_t READ_BYTE() {
-    // return *vm.ip++;
     return vm.source[vm.ip++];
 }
 
@@ -16,14 +15,12 @@ static uint16_t READ_BYTE16() {
 
 void initVM() {
     vm.source = NULL;
-    //vm.ip = NULL;
     vm.ip = 0;
     vm.stackTop = vm.stack;
 }
 
 void freeVM() {
     vm.source = NULL;
-    //vm.ip = NULL;
     vm.ip = 0;
 }
 
@@ -57,7 +54,6 @@ void run(uint8_t* source) {
     for (;;) {
 #ifdef DEBUG_TRACE_EXEC
         printf("\n");
-        //disassembleInstruction(vm.source, (int)(vm.ip - vm.source));
         disassembleInstruction(vm.source, vm.ip);
 #endif
 
@@ -437,6 +433,16 @@ void run(uint8_t* source) {
                     fprintf(stderr, "invalid register %02x\n", dest);
                     exit(1);
                 }
+                break;
+            }
+            case OP_RET: {
+                vm.ip = pop();
+                break;
+            }
+            case OP_CALL: {
+                uint16_t dest = READ_BYTE16();
+                push(vm.ip);
+                vm.ip = dest;
                 break;
             }
             default:

@@ -1,0 +1,9 @@
+
+0x0000      jmp    0x0006
+0x0006      getip   ax
+0x0008      call    0x0003
+0x0003      printi   ax
+8
+0x0005      ret
+
+0x000b      halt

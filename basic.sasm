@@ -1,7 +1,12 @@
-main:
-    setr r0 0x20
-    setr r1 0x21
+;;;;;;;;;;;;;;;;;;;;;;;;;;
+;;  Include File Test   ;;
+;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-    lt r0 r1
-    printi r0
-    halt
+_axprinti: ; print integer label
+    printi ax ; print value in ax
+    ret ; restore IP from stack (go to instruction after call)
+
+main:
+    getip ax ; load IP into ax
+    call _axprinti ; call print
+    halt ; halt VM (end program)

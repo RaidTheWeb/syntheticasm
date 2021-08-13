@@ -1,4 +1,5 @@
 #include <ctype.h>
+#include <sys/stat.h>
 
 #include "assembler.h"
 #include "vm.h"
@@ -68,6 +69,30 @@ static void emitByte(uint8_t byte) {
     assembler.bytesWritten++;
 }
 
+static void padJumpToMain() {
+    uint16_t dest;
+    if(searchKey("main", labelArray) == NULL) {
+        fprintf(stderr, "main label does not exist.\n");
+        exit(1);
+    } else {
+        dest = searchKey("main", labelArray)->value;
+    }
+
+    uint8_t* bbuffer = malloc(3*sizeof(uint8_t));
+    bbuffer[0] = OP_JMP;
+    bbuffer[1] = dest >> 8;
+    bbuffer[2] = (uint8_t)dest;
+
+    int length = assembler.capacity + (sizeof(bbuffer) / sizeof(uint8_t));
+
+    uint8_t* endbuffer = malloc(length*sizeof(uint8_t));
+    memcpy(endbuffer, bbuffer, 3*sizeof(uint8_t));
+    memcpy(endbuffer+3, assembler.buffer, assembler.capacity*sizeof(uint8_t));
+
+    assembler.buffer = endbuffer;
+    assembler.capacity = length;
+}
+
 static void emitByte16(uint16_t bytes) {
     uint8_t msb = bytes >> 8;
     uint8_t lsb = bytes;
@@ -76,7 +101,7 @@ static void emitByte16(uint16_t bytes) {
 }
 
 static void writeBuffer(FILE* file) {
-    fwrite(assembler.buffer, sizeof(uint8_t), assembler.count, file);
+    fwrite(assembler.buffer, sizeof(uint8_t), assembler.capacity, file);
 }
 
 void trim(char * s) {
@@ -119,6 +144,17 @@ static uint8_t getRegisterHex(const char* reg) {
         case HR_R1: return r1;
         case HR_R2: return r2;
         case HR_R3: return r3;
+        case HR_R4: return r4;
+        case HR_R5: return r5;
+        case HR_R6: return r6;
+        case HR_R7: return r7;
+        case HR_R8: return r8;
+        case HR_R9: return r9;
+        case HR_R10: return r10;
+        case HR_AX: return ax;
+        case HR_BX: return bx;
+        case HR_CX: return cx;
+        case HR_DX: return dx;
         default: {
             fprintf(stderr, "invalid register `%s`.\n", reg);
             exit(1);
@@ -148,7 +184,8 @@ static bool isAlpha(char c) {
     return ((c >= 'a' &&
             c <= 'z') ||
             (c >= 'A' &&
-            c <= 'Z'));
+            c <= 'Z') ||
+            (c == '_'));
 }
 
 char* matchLabel(char* line) {
@@ -162,25 +199,25 @@ char* matchLabel(char* line) {
         k++;
     }
     if(line[k] == ':') {
-        name[k + 1] = '\0';
+        name[k] = '\0';
         return strdup(name);
     }
     return NULL;
 }
 
-static bool isAplhaStr(char* line) {
+static bool isAlphaStr(char* line) {
     for(int i = 0; i < strlen(line); i++) {
         if(isAlpha(line[i]) != 1) return false;
     }
     return true;
 }
 
-void assemble(FILE* file, char* outf) {
-    assembler.bytesWritten = 0x00;
-    assembler.count = 0;
-    assembler.capacity = 8;
-    assembler.buffer = malloc(sizeof(uint8_t) * assembler.capacity);
+static bool file_exists(char *filename) {
+    struct stat buffer;   
+    return (stat(filename, &buffer) == 0);
+}
 
+void assembleFile(FILE* file) {
     char* line = NULL;
     char** splitline = NULL;
     size_t len = 0;
@@ -197,6 +234,16 @@ void assemble(FILE* file, char* outf) {
         if(label != NULL) {
             insertKey(label, assembler.bytesWritten, labelArray);
             continue; // label
+        }
+        if(strcmp("\%include", splitline[0]) == 0) {
+            matchArgs(splitline, 1);
+            if(!file_exists(splitline[1])) {
+                fprintf(stderr, "attempted to include a file `%s` that does not exist.\n", splitline[1]);
+                exit(1);
+            }
+            FILE* ftemp = fopen(splitline[1], "r");
+            assembleFile(ftemp);
+            continue;
         }
 
         switch(hashString(splitline[0])) {
@@ -315,10 +362,17 @@ void assemble(FILE* file, char* outf) {
             case H_JMP: {
                 matchArgs(splitline, 1);
                 uint16_t dest;
-                if(!isAplhaStr(splitline[1]))
+                if(!isAlphaStr(splitline[1]))
                     dest = (uint16_t)strtol(splitline[1], NULL, 0);
-                else
-                    dest = searchKey(splitline[1], labelArray)->value;
+                else {
+                    if(searchKey(splitline[1], labelArray) != NULL)
+                        dest = searchKey(splitline[1], labelArray)->value;
+                    else {
+                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        exit(1);
+                    }
+                }
+
                 emitByte(OP_JMP);
                 emitByte16(dest);
                 break;
@@ -327,10 +381,16 @@ void assemble(FILE* file, char* outf) {
                 matchArgs(splitline, 2);
                 uint8_t reg = getRegisterHex(splitline[1]);
                 uint16_t dest = 0x0000;
-                if(isAplhaStr(splitline[2]) != 1)
+                if(isAlphaStr(splitline[2]) != 1)
                     dest = (uint16_t)strtol(splitline[2], NULL, 0);
-                else
-                    dest = (uint16_t)searchKey(splitline[2], labelArray)->value;
+                else {
+                    if(searchKey(splitline[1], labelArray) != NULL)
+                        dest = searchKey(splitline[1], labelArray)->value;
+                    else {
+                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        exit(1);
+                    }
+                }
                 emitByte(OP_JNZ);
                 emitByte(reg);
                 emitByte16(dest);
@@ -340,10 +400,16 @@ void assemble(FILE* file, char* outf) {
                 matchArgs(splitline, 2);
                 uint8_t reg = getRegisterHex(splitline[1]);
                 uint16_t dest;
-                if(isAplhaStr(splitline[2]) != 1)
+                if(isAlphaStr(splitline[2]) != 1)
                     dest = (uint16_t)strtol(splitline[2], NULL, 0);
-                else
-                    dest = (uint16_t)searchKey(splitline[2], labelArray)->value;
+                else {
+                    if(searchKey(splitline[1], labelArray) != NULL)
+                        dest = searchKey(splitline[1], labelArray)->value;
+                    else {
+                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        exit(1);
+                    }
+                }
                 emitByte(OP_JZ);
                 emitByte(reg);
                 emitByte16(dest);
@@ -456,6 +522,28 @@ void assemble(FILE* file, char* outf) {
                 emitByte(reg2);
                 break;
             }
+            case H_RET: {
+                matchArgs(splitline, 0);
+                emitByte(OP_RET);
+                break;
+            }
+            case H_CALL: {
+                matchArgs(splitline, 1);
+                uint16_t dest;
+                if(isAlphaStr(splitline[1]) != 1) {
+                    dest = (uint16_t)strtol(splitline[1], NULL, 0);
+                } else {
+                    if(searchKey(splitline[1], labelArray) != NULL) {
+                        dest = searchKey(splitline[1], labelArray)->value;
+                    } else {
+                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        exit(1);
+                    }
+                }
+                emitByte(OP_CALL);
+                emitByte16(dest);
+                break;
+            }
             default: {
                 fprintf(stderr, "invalid instruction `%s`.\n", splitline[0]);
                 exit(1);
@@ -466,6 +554,16 @@ void assemble(FILE* file, char* outf) {
     fclose(file);
     if(line)
         free(line);
+}
+
+void assemble(FILE* file, char* outf) {
+    assembler.bytesWritten = 0x03;
+    assembler.count = 0;
+    assembler.capacity = 8;
+    assembler.buffer = malloc(sizeof(uint8_t) * assembler.capacity);
+
+    assembleFile(file);
+    padJumpToMain();
 
     FILE* out = fopen(outf, "wb");
     writeBuffer(out);
