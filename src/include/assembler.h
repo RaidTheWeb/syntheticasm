@@ -9,7 +9,7 @@ typedef struct {
     uint8_t bytesWritten;
     int count;
     int capacity;
-    uint8_t* buffer;  
+    uint8_t* buffer;
 } Assembler;
 
 #define GROW_BUFFER(assembler) assembler.buffer = realloc(assembler.buffer, ++assembler.capacity)

@@ -2,11 +2,12 @@
 ;;  Include File Test   ;;
 ;;;;;;;;;;;;;;;;;;;;;;;;;;
 
-_axprinti: ; print integer label
-    printi ax ; print value in ax
-    ret ; restore IP from stack (go to instruction after call)
+;%include basicinc.sasm
+
+whileEeqw:
+    setr r0 0x00
 
 main:
     getip ax ; load IP into ax
-    call _axprinti ; call print
+    call whileEeqw ; call print
     halt ; halt VM (end program)

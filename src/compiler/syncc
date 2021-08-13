@@ -1,0 +1,344 @@
+#! /bin/python3
+
+import enum
+import sys
+import os
+import random
+import string
+
+class TokenType(enum.Enum):
+    EOF = -1
+    NEWLINE = 0
+    NUMBER = 1
+    IDENT = 2
+    STRING = 3
+	
+    LABEL = 101
+    GOTO = 102
+    PRINT = 103
+    LET = 104
+    IF = 105
+    THEN = 106
+    ENDIF = 107
+    WHILE = 108
+    REPEAT = 109
+    ENDWHILE = 110
+	
+    EQ = 201  
+    PLUS = 202
+    MINUS = 203
+    ASTERISK = 204
+    SLASH = 205
+    EQEQ = 206
+    NOTEQ = 207
+    LT = 208
+    LTEQ = 209
+    GT = 210
+    GTEQ = 211
+
+class Token:
+    def __init__(self, tokenText, tokenKind):
+        self.text = tokenText
+        self.kind = tokenKind
+
+    @staticmethod
+    def checkIfKeyword(tokenText):
+        for kind in TokenType:
+            if kind.name == tokenText and kind.value >= 100 and kind.value < 200:
+                return kind
+        return None
+
+class Lexer:
+    def __init__(self, input):
+        self.source = input + '\n'
+        self.curChar = ''
+        self.curPos = -1
+        self.nextChar()
+
+    def nextChar(self):
+        self.curPos += 1
+        if self.curPos >= len(self.source):
+            self.curChar = '\0'
+        else:
+            self.curChar = self.source[self.curPos];
+
+    def peek(self):
+        if self.curPos + 1 >= len(self.source):
+            return '\0'
+        return self.source[self.curPos+1]
+
+    def abort(self, message):
+        sys.exit("syncc: \033[31;1mfatal error\033[0m: lexing error: " + message + "\ncompilation terminated.")
+
+    def skipWhitespace(self):
+        while self.curChar == ' ' or self.curChar == '\t' or self.curChar == '\r':
+            self.nextChar()
+
+    def skipComment(self):
+        if self.curChar == '#':
+            while self.curChar != '\n':
+                self.nextChar()
+
+    def getToken(self):
+        self.skipWhitespace()
+        self.skipComment()
+        token = None
+
+        if self.curChar == '+':
+            token = Token(self.curChar, TokenType.PLUS)
+        elif self.curChar == '-':
+            token = Token(self.curChar, TokenType.MINUS)
+        elif self.curChar == '*':
+            token = Token(self.curChar, TokenType.ASTERISK)
+        elif self.curChar == '/':
+            token = Token(self.curChar, TokenType.SLASH)
+        elif self.curChar == '\"':
+            self.nextChar()
+            startPos = self.curPos
+
+            while self.curChar != '\"':
+                if self.curChar == '\r' or self.curChar == '\n' or self.curChar == '\t' or self.curChar == '\\' or self.curChar == '%':
+                    self.abort("illegal character for string")
+                self.nextChar()
+
+            tokText = self.source[startPos:self.curPos]
+            token = Token(tokText, TokenType.STRING)
+
+        elif self.curChar.isdigit():
+            startPos = self.curPos
+            while self.peek().isdigit():
+                self.nextChar()
+            
+            tokText = self.source[startPos:self.curPos + 1]
+            token = Token(tokText, TokenType.NUMBER)
+
+        elif self.curChar.isalpha():
+            startPos = self.curPos
+            while self.peek().isalnum():
+                self.nextChar()
+
+            tokText = self.source[startPos:self.curPos + 1]
+            keyword = Token.checkIfKeyword(tokText)
+            if keyword == None:
+                token = Token(tokText, TokenType.IDENT)
+            else:
+                token = Token(tokText, keyword)
+
+        elif self.curChar == '\n':
+            token = Token(self.curChar, TokenType.NEWLINE)
+        elif self.curChar == '\0':
+            token = Token('', TokenType.EOF)
+        else:
+            self.abort("unknown token `" + self.curChar + "`")
+
+        self.nextChar()
+        return token
+
+######################
+##  PARSER  CLASS   ##
+######################
+
+class Parser:
+    def __init__(self, lexer, emitter):
+        self.lexer = lexer
+        self.emitter = emitter
+
+        self.symbols = set()
+        self.labelsDeclared = set()
+        self.labelsGotoed = set()
+
+        self.curToken = None
+        self.peekToken = None
+        self.nextToken()
+        self.nextToken()
+
+    def checkToken(self, kind):
+        return kind == self.curToken.kind
+
+    def checkPeek(self, kind):
+        return kind == self.peekToken.kind
+
+    def match(self, kind):
+        if not self.checkToken(kind):
+            self.abort("expected " + kind.name + ", got " + self.curToken.name)
+        self.nextToken()
+
+    def nextToken(self):
+        self.curToken = self.peekToken
+        self.peekToken = self.lexer.getToken()
+
+    def abort(self, message):
+        sys.exit("syncc: \033[31;1mfatal error\033[0m: parsing error: " + message + "\ncompilation terminated.")
+
+
+    def nl(self):
+
+
+        self.match(TokenType.NEWLINE)
+        while self.checkToken(TokenType.NEWLINE):
+            self.nextToken()
+
+    def statement(self):
+        if self.checkToken(TokenType.PRINT):
+            self.nextToken()
+
+            if self.checkToken(TokenType.STRING):
+                self.emitter.emitLine("\tprintcs \"" + self.curToken.text + "\"")
+                self.emitter.emitLine("\tsetr dx 0x0A")
+                self.emitter.emitLine("\tprintc dx")
+                self.nextToken()
+            else:
+                self.expression()
+                self.emitter.emitLine("\tprintis")
+
+        elif self.checkToken(TokenType.LABEL):
+            self.nextToken()
+            if self.curToken.text in self.labelsDeclared:
+                self.abort("label already declared: " + self.curToken.text)
+            self.labelsDeclared.add(self.curToken.text)
+
+            self.emitter.emitLine(self.curToken.text + ": ; LABEL " + self.curToken.text)
+            self.match(TokenType.IDENT)
+
+        elif self.checkToken(TokenType.GOTO):
+            self.nextToken()
+            self.labelsGotoed.add(self.curToken.text)
+            self.emitter.emitLine("\tjmp " + self.curToken.text + " ; GOTO " + self.curToken.text)
+            self.match(TokenType.IDENT)
+
+        elif self.checkToken(TokenType.LET):
+            self.nextToken()
+
+            if self.curToken.text not in self.symbols:
+                self.symbols.add(self.curToken.text)
+
+            self.match(TokenType.IDENT)
+            self.match(TokenType.EQ)
+            self.expression()
+
+        else:
+            self.abort("invalid statement at " + self.curToken.text + "(" + self.curToken.kind.name + ")")
+
+        self.nl()
+
+    def isComparisonOperator(self):
+        return self.checkToken(TokenType.GT) or self.checkToken(TokenType.GTEQ) or self.checkToken(TokenType.LT) or self.checkToken(TokenType.LTEQ) or self.checkToken(TokenType.EQEQ) or self.checkToken(TokenType.NOTEQ)
+
+    def term(self):
+
+        self.unary()
+
+        while self.checkToken(TokenType.ASTERISK) or self.checkToken(TokenType.SLASH):
+            op = self.curToken.text
+            self.nextToken()
+            self.unary()
+            if op == "*":
+                self.emitter.emitLine("\tmuls ; *")
+            else:
+                self.emitter.emitLine("\tdivs ; /")
+
+    def unary(self):
+
+        op = None
+        if self.checkToken(TokenType.PLUS) or self.checkToken(TokenType.MINUS):
+            op = self.curToken.text
+            self.nextToken()
+        self.primary()
+        if op == "+":
+            self.emitter.emitLine("\tabss ; +")
+        elif op == "-":
+            self.emitter.emitLine("\tnegs ; -")
+
+
+
+    def primary(self):
+
+        if self.checkToken(TokenType.NUMBER):
+            self.emitter.emitLine("\tpush " + str(hex(int(self.curToken.text))))
+            self.nextToken()
+        elif self.checkToken(TokenType.IDENT):
+            if self.curToken.text not in self.symbols:
+                self.abort("referencing a symbol that isn't assigned yet/doesn't exist: " + self.curToken.text)
+            
+            self.emitter.emitLine("\t; variables not implemented yet")
+            self.nextToken()
+        else:
+            self.abort("unexpected token at primary parsing: " + self.curToken.text)
+
+    def expression(self):
+
+        self.term()
+
+        while self.checkToken(TokenType.PLUS) or self.checkToken(TokenType.MINUS):
+            op = self.curToken.text
+            self.nextToken()
+            self.term()
+            if op == "+":
+                self.emitter.emitLine("\tadds ; +")
+            else:
+                self.emitter.emitLine("\tsubs ; -")
+
+    def program(self):
+        self.emitter.headerLine("; generated by syncc")
+
+        for line in self.lexer.source.split('\n'):
+            self.emitter.headerLine("; " + line)
+        self.emitter.headerLine("\n\n; auto generated code follows: ")
+
+        self.emitter.headerLine("main:")
+
+
+        while self.checkToken(TokenType.NEWLINE):
+            self.nextToken()
+
+        while not self.checkToken(TokenType.EOF):
+            self.statement()
+
+        self.emitter.emitLine("\thalt ; end program")
+
+        for label in self.labelsGotoed:
+            if label not in self.labelsDeclared:
+                self.abort("attempted to GOTO to undeclared label: " + label)
+
+######################
+##  EMITTER CLASS   ##
+######################
+
+class Emitter:
+    def __init__(self, fullPath):
+        self.fullPath = fullPath
+        self.header = ""
+        self.code = ""
+
+    def emit(self, code):
+        self.code += code
+
+    def emitLine(self, code):
+        self.code += code + '\n'
+
+    def headerLine(self, code):
+        self.header += code + '\n'
+
+    def writeFile(self):
+        with open(self.fullPath, 'w') as outputFile:
+            outputFile.write(self.header + self.code)
+
+
+# main code
+
+def main():
+    if(len(sys.argv) == 1):
+        print("syncc: \033[31;1mfatal error\033[0m: no input file specified\ncompilation terminated.")
+        sys.exit(1)
+    elif(len(sys.argv) == 2):
+        with open(sys.argv[1], 'r') as inputFile:
+            input = inputFile.read()
+
+        lexer = Lexer(input)
+        emitter = Emitter("out.sasm")
+        parser = Parser(lexer, emitter)
+
+        parser.program()
+        emitter.writeFile()
+
+main()

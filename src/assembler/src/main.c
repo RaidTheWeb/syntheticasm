@@ -11,6 +11,7 @@ static bool file_exists(char *filename) {
 
 int main(int argc, char** argv) {
     if(argc < 2) {
+        fprintf(stderr, "%s: \e[31;1mfatal error\e[0m: no input file specified\n", argv[0]);
         fprintf(stderr, "usage: %s [input] [out?]\n", argv[0]);
         return 1;
     }

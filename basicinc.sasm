@@ -1,4 +1,5 @@
-; noway: function
-printcs "no way"
-setr r2 0x0A
-printc r2
+no_way:
+    printcs "no way"
+    setr r2 0x0A
+    printc r2
+    ret

@@ -180,12 +180,11 @@ static bool match(const char* line, char chr, int index) {
     return line[index] == chr;
 }
 
-static bool isAlpha(char c) {
-    return ((c >= 'a' &&
-            c <= 'z') ||
-            (c >= 'A' &&
-            c <= 'Z') ||
-            (c == '_'));
+static bool isAlpha(char c)
+{
+    return (c >= 'a' && c <= 'z') ||
+           (c >= 'A' && c <= 'Z') ||
+           c == '_';
 }
 
 char* matchLabel(char* line) {
@@ -195,6 +194,7 @@ char* matchLabel(char* line) {
     int k = 0;
     for(int i = 0; i < length; i++) {
         if(isAlpha(line[i]) != 1) break;
+        //printf("%c", line[i]);
         name[i] = line[i];
         k++;
     }
@@ -368,7 +368,7 @@ void assembleFile(FILE* file) {
                     if(searchKey(splitline[1], labelArray) != NULL)
                         dest = searchKey(splitline[1], labelArray)->value;
                     else {
-                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        fprintf(stderr, "label `%s` does not exist.\n", splitline[1]);
                         exit(1);
                     }
                 }
@@ -380,14 +380,14 @@ void assembleFile(FILE* file) {
             case H_JNZ: {
                 matchArgs(splitline, 2);
                 uint8_t reg = getRegisterHex(splitline[1]);
-                uint16_t dest = 0x0000;
-                if(isAlphaStr(splitline[2]) != 1)
+                uint16_t dest;
+                if(!isAlphaStr(splitline[2]))
                     dest = (uint16_t)strtol(splitline[2], NULL, 0);
                 else {
-                    if(searchKey(splitline[1], labelArray) != NULL)
-                        dest = searchKey(splitline[1], labelArray)->value;
+                    if(searchKey(splitline[2], labelArray) != NULL)
+                        dest = searchKey(splitline[2], labelArray)->value;
                     else {
-                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        fprintf(stderr, "label `%s` does not exist.\n", splitline[2]);
                         exit(1);
                     }
                 }
@@ -403,10 +403,10 @@ void assembleFile(FILE* file) {
                 if(isAlphaStr(splitline[2]) != 1)
                     dest = (uint16_t)strtol(splitline[2], NULL, 0);
                 else {
-                    if(searchKey(splitline[1], labelArray) != NULL)
+                    if(searchKey(splitline[2], labelArray) != NULL)
                         dest = searchKey(splitline[1], labelArray)->value;
                     else {
-                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        fprintf(stderr, "label `%s` does not exist.\n", splitline[2]);
                         exit(1);
                     }
                 }
@@ -536,12 +536,47 @@ void assembleFile(FILE* file) {
                     if(searchKey(splitline[1], labelArray) != NULL) {
                         dest = searchKey(splitline[1], labelArray)->value;
                     } else {
-                        fprintf(stderr, "label `%s` does not exit.\n", splitline[1]);
+                        fprintf(stderr, "label `%s` does not exist.\n", splitline[1]);
                         exit(1);
                     }
                 }
                 emitByte(OP_CALL);
                 emitByte16(dest);
+                break;
+            }
+            case H_PRINTIS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_PRINTIS);
+                break;
+            }
+            case H_ADDS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_ADDS);
+                break;
+            }
+            case H_SUBS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_SUBS);
+                break;
+            }
+            case H_MULS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_MULS);
+                break;
+            }
+            case H_DIVS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_DIVS);
+                break;
+            }
+            case H_GTS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_GTS);
+                break;
+            }
+            case H_LTS: {
+                matchArgs(splitline, 0);
+                emitByte(OP_LTS);
                 break;
             }
             default: {

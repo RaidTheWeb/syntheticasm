@@ -113,6 +113,13 @@ int disassembleInstruction(uint8_t* source, int offset) {
         case OP_GT: return movInstruction("gt", offset, source[offset + 1], source[offset + 2]);
         case OP_RET: return simpleInstruction("ret", offset);
         case OP_CALL: return simpleJumpInstruction("call", offset, source[offset + 1], source[offset + 2]);
+        case OP_PRINTIS: return simpleInstruction("printis", offset);
+        case OP_ADDS: return simpleInstruction("adds", offset);
+        case OP_SUBS: return simpleInstruction("subs", offset);
+        case OP_MULS: return simpleInstruction("muls", offset);
+        case OP_DIVS: return simpleInstruction("divs", offset);
+        case OP_GTS: return simpleInstruction("gts", offset);
+        case OP_LTS: return simpleInstruction("lts", offset);
         default:
             printf("unknown operation %02x", instruction);
             return offset + 1;

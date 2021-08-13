@@ -32,6 +32,13 @@ typedef enum {
     OP_GT           = 0x1D,                     // gt       -       conditional greater than and store result in dest
     OP_RET          = 0x1E,                     // ret      -       return from procedure (restore ip from stack)
     OP_CALL         = 0x1F,                     // call     -       call a procedure (place ip on stack)
+    OP_PRINTIS      = 0x20,                     // printis  -       print integer from stack
+    OP_ADDS         = 0x21,                     // adds     -       add two values from stack and push result to stack
+    OP_SUBS         = 0x22,                     // subs     -       subtract two values from stack and push result to stack
+    OP_MULS         = 0x23,                     // muls     -       multiply two values from stack and push result to stack
+    OP_DIVS         = 0x24,                     // divs     -       divide two values from stack and push result to stack
+    OP_LTS          = 0x25,                     // lts      -       conditional less than and push result to stack
+    OP_GTS          = 0x26,                     // gts      -       conditional greater than and push result to stack
 } Opcode;
 
 typedef enum {
@@ -66,6 +73,13 @@ typedef enum {
     H_GT                = 0x4b208576,       // gt
     H_RET               = 0x30f467ac,       // ret
     H_CALL              = 0xb3f184a9,       // call
+    H_PRINTIS           = 0x1db944c0,       // printis
+    H_ADDS              = 0x41d76105,       // adds
+    H_SUBS              = 0x35245b92,       // subs
+    H_MULS              = 0xb44293f6,       // muls
+    H_DIVS              = 0x55538de1,       // divs
+    H_LTS               = 0x539456ba,       // lts
+    H_GTS               = 0x493166df,       // gts
 } HashedOpcode;
 
 typedef enum {

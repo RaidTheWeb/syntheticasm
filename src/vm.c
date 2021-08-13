@@ -445,6 +445,50 @@ void run(uint8_t* source) {
                 vm.ip = dest;
                 break;
             }
+            case OP_PRINTIS: {
+                printf("%d", pop());
+                break;
+            }
+            case OP_ADDS: {
+                uint16_t b = pop();
+                uint16_t a = pop();
+                push(a + b);
+                break;
+            }
+            case OP_SUBS: {
+                uint16_t b = pop();
+                uint16_t a = pop();
+                push(a - b);
+                break;
+            }
+            case OP_MULS: {
+                uint16_t b = pop();
+                uint16_t a = pop();
+                push(a * b);
+                break;
+            }
+            case OP_DIVS: {
+                uint16_t b = pop();
+                uint16_t a = pop();
+                if(a == 0x00 || b == 0x00) {
+                    fprintf(stderr, "attempted division by zero.\n");
+                    exit(1);
+                }
+                push(a / b);
+                break;
+            }
+            case OP_LTS: {
+                uint16_t b = pop();
+                uint16_t a = pop();
+                push(a < b ? 1 : 0);
+                break;
+            }
+            case OP_GTS: {
+                uint16_t b = pop();
+                uint16_t a = pop();
+                push(a > b ? 1 : 0);
+                break;
+            }
             default:
                 break;
         }
